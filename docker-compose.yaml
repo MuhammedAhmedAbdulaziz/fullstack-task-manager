@@ -1,0 +1,110 @@
+# ==========================================================
+# Docker Compose - Full Stack Orchestration
+# ==========================================================
+# This file defines and runs both services (backend + frontend)
+# together with shared networking, health checks, and
+# environment configuration.
+# ==========================================================
+
+services:
+
+  # --------------------------------------------------------
+  # Backend Service (NestJS API)
+  # --------------------------------------------------------
+  backend:
+    # Pull the pre-built image from Docker Hub.
+    # IMAGE_TAG defaults to "latest" if not set (e.g. during local development).
+    # In CI/CD, Jenkins sets IMAGE_TAG to the build number for versioning.
+    image: azoooz/egcert-devops-assessment-backend:${IMAGE_TAG:-latest}
+
+    # Build configuration used when running "docker compose up --build".
+    # Points to the backend directory and its Dockerfile.
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+
+    # Give the container a fixed name to avoid duplicates on re-runs (idempotency).
+    container_name: task-manager-backend
+
+    # Automatically restart the container if it crashes,
+    # but not if it was manually stopped.
+    restart: unless-stopped
+
+    # Map host port to container port.
+    # BACKEND_PORT defaults to 3001 if not set.
+    ports:
+      - "${BACKEND_PORT:-3001}:3001"
+
+    # Environment variables passed to the running container.
+    environment:
+      - NODE_ENV=production        # Run NestJS in production mode
+      - PORT=3001                  # Port the NestJS server listens on
+      - CORS_ORIGIN=http://localhost:${FRONTEND_PORT:-3000}  # Allow requests from the frontend
+
+    # Attach this service to the shared application network
+    # so frontend and backend can communicate by service name.
+    networks:
+      - app-network
+
+    # Docker-level health check. This is used by the frontend's
+    # "depends_on" condition to wait until the backend is ready
+    # before starting.
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3001/health"]
+      interval: 30s      # Check every 30 seconds
+      timeout: 5s        # Fail if no response within 5 seconds
+      retries: 3         # Mark unhealthy after 3 consecutive failures
+      start_period: 10s  # Give the backend 10 seconds to start up
+
+  # --------------------------------------------------------
+  # Frontend Service (Next.js)
+  # --------------------------------------------------------
+  frontend:
+    # Pull the pre-built image from Docker Hub.
+    image: azoooz/egcert-devops-assessment-frontend:${IMAGE_TAG:-latest}
+
+    # Build configuration for the frontend.
+    # NEXT_PUBLIC_API_URL is passed as a build argument because Next.js
+    # bakes public environment variables into the JavaScript bundle at build time.
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_API_URL: http://localhost:${BACKEND_PORT:-3001}
+
+    # Fixed container name for idempotency.
+    container_name: task-manager-frontend
+
+    # Automatically restart the container if it crashes.
+    restart: unless-stopped
+
+    # Map host port to container port.
+    # FRONTEND_PORT defaults to 3000 if not set.
+    ports:
+      - "${FRONTEND_PORT:-3000}:3000"
+
+    # Environment variables passed to the running container.
+    environment:
+      - NODE_ENV=production  # Run Next.js in production mode
+
+    # Wait for the backend to be healthy before starting the frontend.
+    # This ensures the API is available when the frontend comes up.
+    depends_on:
+      backend:
+        condition: service_healthy
+
+    # Attach to the same network as the backend.
+    networks:
+      - app-network
+
+# ----------------------------------------------------------
+# Networks
+# ----------------------------------------------------------
+# A custom bridge network allows containers to communicate
+# using service names (e.g. "backend") as hostnames.
+# The fixed name prevents Docker from creating duplicate
+# networks on repeated runs.
+networks:
+  app-network:
+    driver: bridge
+    name: task-manager-network
