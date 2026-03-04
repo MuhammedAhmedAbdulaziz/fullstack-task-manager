@@ -48,7 +48,7 @@ export function StatsCard({ stats, isLoading }: StatsCardProps) {
       label: getStatusLabel(TaskStatus.DONE),
       value: stats.byStatus[TaskStatus.DONE],
       icon: CheckCircle2,
-      color: 'text-indigo-600 bg-indigo-100',
+      color: 'text-emerald-600 bg-emerald-100',
     },
   ];
 
