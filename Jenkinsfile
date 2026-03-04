@@ -163,6 +163,12 @@ pipeline {
                     export DOCKERHUB_USERNAME=\${DOCKERHUB_CREDENTIALS_USR}
                     export IMAGE_TAG=${IMAGE_TAG}
 
+                    # Idempotency: Tear down any existing containers and networks
+                    # before redeploying. This ensures the pipeline can run multiple
+                    # times without failing due to name conflicts or duplicate resources.
+                    # "|| true" prevents failure on the first run when nothing exists yet.
+                    docker compose -f docker-compose.yaml down --remove-orphans || true
+
                     # Pull the latest images from Docker Hub
                     docker compose -f docker-compose.yaml pull
 
