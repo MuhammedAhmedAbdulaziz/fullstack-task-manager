@@ -27,7 +27,7 @@ body {
   }
 
   .btn-primary {
-    @apply bg-emerald-600 text-white hover:bg-emerald-700 focus:ring-emerald-500;
+    @apply bg-indigo-600 text-white hover:bg-indigo-700 focus:ring-indigo-500;
   }
 
   .btn-secondary {
@@ -39,7 +39,7 @@ body {
   }
 
   .input {
-    @apply block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm placeholder-slate-400 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500;
+    @apply block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm placeholder-slate-400 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500;
   }
 
   .label {
